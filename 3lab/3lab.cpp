@@ -95,6 +95,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         MessageBox(NULL, L"Не удалось получить аргументы командной строки. Используются настройки по умолчанию.", L"Ошибка", MB_OK | MB_ICONWARNING);
     }
 
+    cellSize = settings.gridSize;
     // 3️⃣ Читаем настройки в зависимости от метода
     switch (method) {
     case 1: ReadSettingsFromMemoryMapping(settings); break;
@@ -105,7 +106,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     }
 
     // 4️⃣ Применяем настройки после загрузки
-    cellSize = settings.gridSize;
     wndWidth = settings.windowWidth;
     wndHeight = settings.windowHeight;
     bgBrush = CreateSolidBrush(settings.backgroundColor);
