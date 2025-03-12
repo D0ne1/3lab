@@ -56,28 +56,46 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
     int method = 1; // Метод по умолчанию
 
-    // 2️⃣ Парсим аргументы командной строки (оба параметра разом)
+    // 2️⃣ Парсим аргументы командной строки
     int argc;
-    int c; //Переменная для обработки аргумента строки
     LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
     if (argv) {
+        if (argc > 2) {
+            // Если есть аргументы, парсим метод
+            int cmdMethod = _wtoi(argv[2]);
+            if (cmdMethod >= 1 && cmdMethod <= 4) {
+                method = cmdMethod;  // Метод корректен
+            }
+            else {
+                // Если метод некорректен, используем значение по умолчанию
+                MessageBox(NULL, L"Некорректный метод. Используется метод по умолчанию (1).", L"Ошибка", MB_OK | MB_ICONWARNING);
+            }
+        }
+        else {
+            // Если аргументов нет, используем значения по умолчанию
+            MessageBox(NULL, L"Аргументы командной строки отсутствуют. Используются настройки по умолчанию.", L"Информация", MB_OK | MB_ICONINFORMATION);
+        }
+
         if (argc > 1) {
+            // Если есть аргумент, парсим размер сетки
             int cmdGridSize = _wtoi(argv[1]);
             if (cmdGridSize > 0) {
                 settings.gridSize = cmdGridSize;
-                c = cmdGridSize;
+            }
+            else {
+                // Если размер сетки некорректен, используем значение по умолчанию
+                MessageBox(NULL, L"Некорректный размер сетки. Используется значение по умолчанию.", L"Ошибка", MB_OK | MB_ICONWARNING);
             }
         }
-        if (argc > 2) {
-            int cmdMethod = _wtoi(argv[2]);
-            if (cmdMethod >= 1 && cmdMethod <= 4) {
-                method = cmdMethod;  // ✅ Теперь `method` корректен перед `switch`
-            }
-        }
-    }
-    LocalFree(argv);
 
-    // 3️⃣ Читаем настройки в зависимости от метода (если method был изменён аргументом, он уже правильный)
+        LocalFree(argv);
+    }
+    else {
+        // Если не удалось получить аргументы, используем значения по умолчанию
+        MessageBox(NULL, L"Не удалось получить аргументы командной строки. Используются настройки по умолчанию.", L"Ошибка", MB_OK | MB_ICONWARNING);
+    }
+
+    // 3️⃣ Читаем настройки в зависимости от метода
     switch (method) {
     case 1: ReadSettingsFromMemoryMapping(settings); break;
     case 2: ReadSettingsFromFile(settings); break;
@@ -87,7 +105,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     }
 
     // 4️⃣ Применяем настройки после загрузки
-    cellSize = c;  // ✅ Применяем `gridSize`
+    cellSize = settings.gridSize;
     wndWidth = settings.windowWidth;
     wndHeight = settings.windowHeight;
     bgBrush = CreateSolidBrush(settings.backgroundColor);
@@ -364,7 +382,6 @@ void ReadSettingsFromMemoryMapping(Settings& settings) {
     CloseHandle(hFile);
 }
 
-
 void WriteSettingsToMemoryMapping(const Settings& settings) {
     std::string data = "[Settings]\n";
     data += "GridSize=" + std::to_string(settings.gridSize) + "\n";
@@ -594,3 +611,4 @@ void WriteSettingsToWinAPI(const Settings& settings) {
 
     CloseHandle(hFile);
 }
+//Текст

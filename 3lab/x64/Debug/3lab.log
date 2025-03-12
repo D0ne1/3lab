@@ -1,3 +1,3 @@
 ﻿  3lab.cpp
-C:\ДАНИИЛ\универ\2 курс\архитектура ОС\3 лаба\3lab\3lab\3lab.cpp(593,45): warning C4267: 'argument': conversion from 'size_t' to 'DWORD', possible loss of data
+C:\ДАНИИЛ\универ\2 курс\архитектура ОС\3 лаба\3lab\3lab\3lab.cpp(610,45): warning C4267: 'argument': conversion from 'size_t' to 'DWORD', possible loss of data
   3lab.vcxproj -> C:\ДАНИИЛ\универ\2 курс\архитектура ОС\3 лаба\3lab\x64\Debug\3lab.exe
