@@ -120,12 +120,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     wc.hbrBackground = bgBrush;
     RegisterClass(&wc);
 
-    /*HWND hwnd = CreateWindowEx(
-        0, L"GridAppClass", L"Circle & Crosses",
-        WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-        CW_USEDEFAULT, CW_USEDEFAULT, wndWidth, wndHeight,
-        NULL, NULL, hInstance, NULL
-    );*/
     RECT rc = { 0, 0, wndWidth, wndHeight };
     AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE); // Учитываем рамки окна
     int adjustedWidth = rc.right - rc.left;
@@ -337,40 +331,50 @@ void DrawCross(HDC hdc, int x, int y, int size) {
     DeleteObject(pen);  // Удаляем перо
 }
 
-//Метод 1: Отображение файлов на память (CreateFileMapping / MapViewOfFile)
+// Метод 1: Отображение файлов на память (CreateFileMapping / MapViewOfFile)
 void ReadSettingsFromMemoryMapping(Settings& settings) {
+    // Открываем файл settings.ini для чтения
     HANDLE hFile = CreateFile(TEXT("settings.ini"), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     if (hFile == INVALID_HANDLE_VALUE) {
+        // Если файл не удалось открыть, используем значения по умолчанию
         settings = { DEFAULT_GRID_SIZE, 320, 240, RGB(0, 0, 255), RGB(255, 0, 0) };
         return;
     }
 
+    // Получаем размер файла
     DWORD fileSize = GetFileSize(hFile, NULL);
     if (fileSize == INVALID_FILE_SIZE || fileSize == 0) {
+        // Если размер файла некорректен, закрываем файл и используем значения по умолчанию
         CloseHandle(hFile);
         settings = { DEFAULT_GRID_SIZE, 320, 240, RGB(0, 0, 255), RGB(255, 0, 0) };
         return;
     }
 
+    // Создаем отображение файла в память
     HANDLE hMapping = CreateFileMapping(hFile, NULL, PAGE_READONLY, 0, fileSize, NULL);
     if (!hMapping) {
+        // Если не удалось создать отображение, закрываем файл и используем значения по умолчанию
         CloseHandle(hFile);
         settings = { DEFAULT_GRID_SIZE, 320, 240, RGB(0, 0, 255), RGB(255, 0, 0) };
         return;
     }
 
+    // Отображаем файл в память
     LPVOID pData = MapViewOfFile(hMapping, FILE_MAP_READ, 0, 0, fileSize);
     if (!pData) {
+        // Если не удалось отобразить файл, закрываем отображение и файл, используем значения по умолчанию
         CloseHandle(hMapping);
         CloseHandle(hFile);
         settings = { DEFAULT_GRID_SIZE, 320, 240, RGB(0, 0, 255), RGB(255, 0, 0) };
         return;
     }
 
+    // Преобразуем данные в строку
     std::string content(static_cast<char*>(pData), fileSize);
     std::stringstream ss(content);
     std::string line;
 
+    // Читаем файл построчно и парсим настройки
     while (std::getline(ss, line)) {
         if (line.find("GridSize=") == 0) {
             settings.gridSize = std::stoi(line.substr(9));
@@ -395,12 +399,14 @@ void ReadSettingsFromMemoryMapping(Settings& settings) {
         }
     }
 
+    // Освобождаем ресурсы
     UnmapViewOfFile(pData);
     CloseHandle(hMapping);
     CloseHandle(hFile);
 }
 
 void WriteSettingsToMemoryMapping(const Settings& settings) {
+    // Формируем строку с настройками
     std::string data = "[Settings]\n";
     data += "GridSize=" + std::to_string(settings.gridSize) + "\n";
     data += "WindowWidth=" + std::to_string(settings.windowWidth) + "\n";
@@ -414,35 +420,35 @@ void WriteSettingsToMemoryMapping(const Settings& settings) {
 
     DWORD dataSize = static_cast<DWORD>(data.size());
 
-    // 1. Открываем файл с очисткой перед записью
+    // Открываем файл для записи (создаем новый или перезаписываем существующий)
     HANDLE hFile = CreateFile(TEXT("settings.ini"), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     if (hFile == INVALID_HANDLE_VALUE) {
         printf("Ошибка: не удалось открыть файл settings.ini. Код ошибки: %d\n", GetLastError());
         return;
     }
 
-    // 2. Записываем данные в файл
+    // Записываем данные в файл
     DWORD bytesWritten;
     BOOL success = WriteFile(hFile, data.c_str(), dataSize, &bytesWritten, NULL);
     if (!success || bytesWritten != dataSize) {
         printf("Ошибка: не удалось записать данные в файл. Код ошибки: %d\n", GetLastError());
     }
 
-    // 3. Закрываем файл
+    // Закрываем файл
     CloseHandle(hFile);
-
 }
 
-
-
-//Метод 2: Файловые переменные (fopen, fread, fwrite, fclose)
+// Метод 2: Файловые переменные (fopen, fread, fwrite, fclose)
 void ReadSettingsFromFile(Settings& settings) {
+    // Открываем файл settings.ini для чтения
     FILE* file = nullptr;
     if (fopen_s(&file, "settings.ini", "r") != 0 || !file) {
+        // Если файл не удалось открыть, используем значения по умолчанию
         settings = { DEFAULT_GRID_SIZE, 320, 240, RGB(0, 0, 255), RGB(255, 0, 0) };
         return;
     }
 
+    // Читаем файл построчно и парсим настройки
     char line[256];
     while (fgets(line, sizeof(line), file)) {
         if (strstr(line, "GridSize=")) {
@@ -466,15 +472,18 @@ void ReadSettingsFromFile(Settings& settings) {
         }
     }
 
+    // Закрываем файл
     fclose(file);
 }
 
 void WriteSettingsToFile(const Settings& settings) {
+    // Открываем файл settings.ini для записи
     FILE* file = nullptr;
     if (fopen_s(&file, "settings.ini", "w") != 0) {
         return;
     }
 
+    // Записываем настройки в файл
     fprintf(file, "[Settings]\n");
     fprintf(file, "GridSize=%d\n", settings.gridSize);
     fprintf(file, "WindowWidth=%d\n", settings.windowWidth);
@@ -484,18 +493,21 @@ void WriteSettingsToFile(const Settings& settings) {
     fprintf(file, "GridLineColor=%d,%d,%d\n", GetRValue(settings.gridLineColor),
         GetGValue(settings.gridLineColor), GetBValue(settings.gridLineColor));
 
+    // Закрываем файл
     fclose(file);
 }
 
-
-//Метод 3: Потоки ввода-вывода (библиотека fstream в языке C++, объекты файловых потоков ofstream и ifstream)
+// Метод 3: Потоки ввода-вывода (библиотека fstream в языке C++, объекты файловых потоков ofstream и ifstream)
 void ReadSettingsFromStream(Settings& settings) {
+    // Открываем файл settings.ini для чтения
     std::ifstream file("settings.ini");
     if (!file.is_open()) {
+        // Если файл не удалось открыть, используем значения по умолчанию
         settings = { DEFAULT_GRID_SIZE, 320, 240, RGB(0, 0, 255), RGB(255, 0, 0) };
         return;
     }
 
+    // Читаем файл построчно и парсим настройки
     std::string line;
     while (std::getline(file, line)) {
         if (line.find("GridSize=") == 0) {
@@ -523,16 +535,19 @@ void ReadSettingsFromStream(Settings& settings) {
         }
     }
 
+    // Закрываем файл
     file.close();
 }
 
 void WriteSettingsToStream(const Settings& settings) {
+    // Открываем файл settings.ini для записи
     std::ofstream file("settings.ini");
     if (!file.is_open()) {
         std::cerr << "Ошибка: не удалось открыть файл settings.ini для записи.\n";
         return;
     }
 
+    // Записываем настройки в файл
     file << "[Settings]\n";
     file << "GridSize=" << settings.gridSize << "\n";
     file << "WindowWidth=" << settings.windowWidth << "\n";
@@ -546,39 +561,49 @@ void WriteSettingsToStream(const Settings& settings) {
         << static_cast<int>(GetGValue(settings.gridLineColor)) << ","
         << static_cast<int>(GetBValue(settings.gridLineColor)) << "\n";
 
+    // Проверяем, успешно ли прошла запись
     if (!file) {
         std::cerr << "Ошибка записи в файл settings.ini\n";
     }
 
+    // Закрываем файл
     file.close();
 }
 
-//Метод 4: Файловые функции WinAPI
+// Метод 4: Файловые функции WinAPI
 void ReadSettingsFromWinAPI(Settings& settings) {
+    // Открываем файл settings.ini для чтения
     HANDLE hFile = CreateFile(L"settings.ini", GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     if (hFile == INVALID_HANDLE_VALUE) {
+        // Если файл не удалось открыть, используем значения по умолчанию
         settings = { DEFAULT_GRID_SIZE, 320, 240, RGB(0, 0, 255), RGB(255, 0, 0) };
         return;
     }
 
+    // Получаем размер файла
     DWORD fileSize = GetFileSize(hFile, NULL);
     if (fileSize == INVALID_FILE_SIZE) {
+        // Если размер файла некорректен, закрываем файл и используем значения по умолчанию
         CloseHandle(hFile);
         settings = { DEFAULT_GRID_SIZE, 320, 240, RGB(0, 0, 255), RGB(255, 0, 0) };
         return;
     }
 
+    // Выделяем буфер для чтения данных
     char* buffer = new char[fileSize + 1];
     DWORD bytesRead;
     if (!ReadFile(hFile, buffer, fileSize, &bytesRead, NULL)) {
+        // Если не удалось прочитать файл, освобождаем буфер и закрываем файл, используем значения по умолчанию
         delete[] buffer;
         CloseHandle(hFile);
         settings = { DEFAULT_GRID_SIZE, 320, 240, RGB(0, 0, 255), RGB(255, 0, 0) };
         return;
     }
 
+    // Добавляем завершающий нулевой символ
     buffer[fileSize] = '\0';
 
+    // Парсим настройки из буфера
     std::stringstream ss(buffer);
     std::string line;
     while (std::getline(ss, line)) {
@@ -605,14 +630,13 @@ void ReadSettingsFromWinAPI(Settings& settings) {
         }
     }
 
+    // Освобождаем буфер и закрываем файл
     delete[] buffer;
     CloseHandle(hFile);
 }
 
 void WriteSettingsToWinAPI(const Settings& settings) {
-    HANDLE hFile = CreateFile(L"settings.ini", GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (hFile == INVALID_HANDLE_VALUE) return;
-
+    // Формируем строку с настройками
     std::string data = "[Settings]\n";
     data += "GridSize=" + std::to_string(settings.gridSize) + "\n";
     data += "WindowWidth=" + std::to_string(settings.windowWidth) + "\n";
@@ -624,9 +648,15 @@ void WriteSettingsToWinAPI(const Settings& settings) {
         std::to_string(GetGValue(settings.gridLineColor)) + "," +
         std::to_string(GetBValue(settings.gridLineColor)) + "\n";
 
+    // Открываем файл для записи (создаем новый или перезаписываем существующий)
+    HANDLE hFile = CreateFile(L"settings.ini", GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (hFile == INVALID_HANDLE_VALUE) return;
+
+    // Записываем данные в файл
     DWORD bytesWritten;
     WriteFile(hFile, data.c_str(), data.size(), &bytesWritten, NULL);
 
+    // Закрываем файл
     CloseHandle(hFile);
 }
 //Текст
