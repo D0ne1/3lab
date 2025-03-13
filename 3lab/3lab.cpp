@@ -73,7 +73,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         }
         else {
             // Если аргументов нет, используем значения по умолчанию
-            MessageBox(NULL, L"Аргументы командной строки отсутствуют. Используются настройки по умолчанию.", L"Информация", MB_OK | MB_ICONINFORMATION);
+            MessageBox(NULL, L"Недостаточно аргументов, используем значения по умолчанию (размер ячеек 50, метод 1).", L"Информация", MB_OK | MB_ICONINFORMATION);
         }
 
         if (argc > 1) {
@@ -120,12 +120,24 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     wc.hbrBackground = bgBrush;
     RegisterClass(&wc);
 
-    HWND hwnd = CreateWindowEx(
+    /*HWND hwnd = CreateWindowEx(
         0, L"GridAppClass", L"Circle & Crosses",
         WS_OVERLAPPEDWINDOW | WS_VISIBLE,
         CW_USEDEFAULT, CW_USEDEFAULT, wndWidth, wndHeight,
         NULL, NULL, hInstance, NULL
+    );*/
+    RECT rc = { 0, 0, wndWidth, wndHeight };
+    AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE); // Учитываем рамки окна
+    int adjustedWidth = rc.right - rc.left;
+    int adjustedHeight = rc.bottom - rc.top;
+
+    HWND hwnd = CreateWindowEx(
+        0, L"GridAppClass", L"Circle & Crosses",
+        WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+        CW_USEDEFAULT, CW_USEDEFAULT, adjustedWidth, adjustedHeight,
+        NULL, NULL, hInstance, NULL
     );
+
 
     // 6️⃣ Основной цикл обработки сообщений
     MSG msg = {};
@@ -254,10 +266,13 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         return 0;
     }
     case WM_SIZE: {
-        if (wndWidth != 320 && wndHeight != 240) {
-            wndWidth = LOWORD(lParam);   // Новый размер ширины окна
-            wndHeight = HIWORD(lParam);  // Новый размер высоты окна
-        }
+        //if (wndWidth != 320 && wndHeight != 240) {
+        //    wndWidth = LOWORD(lParam);   // Новый размер ширины окна
+        //    wndHeight = HIWORD(lParam);  // Новый размер высоты окна
+        //}
+        //return 0;
+        wndWidth = LOWORD(lParam);   // Новый размер ширины окна
+        wndHeight = HIWORD(lParam);  // Новый размер высоты окна
         return 0;
     }
     case WM_DESTROY:  // Обработка закрытия окна
