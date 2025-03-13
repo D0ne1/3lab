@@ -93,6 +93,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     else {
         // Если не удалось получить аргументы, используем значения по умолчанию
         MessageBox(NULL, L"Не удалось получить аргументы командной строки. Используются настройки по умолчанию.", L"Ошибка", MB_OK | MB_ICONWARNING);
+    
     }
 
     cellSize = settings.gridSize;
@@ -253,8 +254,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         return 0;
     }
     case WM_SIZE: {
-        wndWidth = LOWORD(lParam);   // Новый размер ширины окна
-        wndHeight = HIWORD(lParam);  // Новый размер высоты окна
+        if (wndWidth != 320 && wndHeight != 240) {
+            wndWidth = LOWORD(lParam);   // Новый размер ширины окна
+            wndHeight = HIWORD(lParam);  // Новый размер высоты окна
+        }
         return 0;
     }
     case WM_DESTROY:  // Обработка закрытия окна
